@@ -24,14 +24,14 @@ exports.postAddProduct = (req, res, next) => {
   product.save()
   .then((result)=>{
     console.log(result);
-    res.redirect('/');
+    res.redirect('/admin/products');
   }).catch((err)=>{
     console.log(err)
   });
 };
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
+  Product.find({userId: req.user._id})
   .populate('userId')
   .then((products)=>{
     console.log(products);
@@ -39,7 +39,7 @@ exports.getProducts = (req, res, next) => {
       prods: products,
       pageTitle: 'Admin Products',
       path: '/admin/products',
-      isAuthenticated: req.session.isLoggedIn
+      isAuthenticated:req.session.isLoggedIn
       });
   })
   .catch((err)=>{
@@ -65,7 +65,7 @@ exports.getEditProduct = (req, res, next) => {
       path: '/admin/edit-product',
       editing: editMode,
       product:product,
-      isAuthenticated: req.session.isLoggedIn
+      isAuthenticated:req.session.isLoggedIn
     });
   })
   .catch((err)=>{
@@ -81,15 +81,19 @@ exports.postEditProduct = (req,res,next)=>{
   const updatedescription = req.body.description;
 
   Product.findById(prodId).then( product => {
+    if(product.userId.toString() !== req.user._id.toString())
+  {
+    return res.redirect('/');
+  }
     product.title = updatetitle;
     product.price = updateprice;
     product.description = updatedescription;
     product.imageUrl = updateImageUrl;
     return product.save()
-  })
-  .then((result)=>{
-    console.log('UPDATED PRODUCT SUCCESSFULLY!!!');
-    res.redirect('/admin/products');
+    .then((result)=>{
+      console.log('UPDATED PRODUCT SUCCESSFULLY!!!');
+      res.redirect('/admin/products');
+    })
   })
   .catch((err)=>{
     console.log(err);
@@ -99,7 +103,7 @@ exports.postEditProduct = (req,res,next)=>{
 exports.postDeleteProduct = (req,res,next)=>{
   const prodId = req.body.productId;
   console.log(prodId);
-  Product.findByIdAndRemove(prodId)
+  Product.deleteOne({_id: prodId,userId: req.user._id})
   .then((product)=>{
     console.log(product);
     res.redirect('/admin/products');
