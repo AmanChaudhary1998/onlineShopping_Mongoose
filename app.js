@@ -5,6 +5,8 @@ const mongoose = require('mongoose');
 const session = require('express-session');
 const csrf = require('csurf');
 const flash = require('connect-flash');
+const multer = require('multer');
+
 const MongoDBStore = require('connect-mongodb-session')(session);
 
 const MONGODB_URI = 'mongodb+srv://aman001:aman28@mycluster.o3hq5.mongodb.net/shop';
@@ -19,6 +21,25 @@ const store = new MongoDBStore({
 
 const csrfProtection = csrf();
 
+const fileStorage = multer.diskStorage({
+  destination : (req,file,cb)=>{
+    cb(null,'images');
+  },
+  filename: (req,file,cb) =>{
+    cb(null, new Date().toISOString().replace(/[\/\\:]/g, "_") + file.originalname)
+  }
+});
+
+const fileFilter = (req,file,cb) =>{
+  if(file.mimetype === 'image/png' || file.mimetype === 'image/jpg' || file.mimetype === 'image/jpeg')
+  {
+    cb(null,true);
+  }
+  else{
+    cb(null,false)
+  }
+}
+
 const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
@@ -29,7 +50,10 @@ const shopRoutes = require('./routes/shop');
 const authRouter = require('./routes/auth');
 
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(multer({storage:fileStorage, fileFilter:fileFilter}).single('image'));
+
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/images',express.static(path.join(__dirname, 'images')));
 
 app.use(session({secret:'my secret', resave: false, saveUninitialized: false, store:store}))
 

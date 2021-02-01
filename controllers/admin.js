@@ -11,9 +11,15 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
+
+  if(!image)
+  {
+    return res.redirect('/admin/add-products');
+  }
+  const imageUrl = image.path;
   const product = new Product({
     title:title,
     price:price,
@@ -76,7 +82,7 @@ exports.getEditProduct = (req, res, next) => {
 exports.postEditProduct = (req,res,next)=>{
   const prodId = req.body.productId;
   const updatetitle = req.body.title;
-  const updateImageUrl = req.body.imageUrl;
+  const updateimage = req.file;
   const updateprice = req.body.price;
   const updatedescription = req.body.description;
 
@@ -88,7 +94,10 @@ exports.postEditProduct = (req,res,next)=>{
     product.title = updatetitle;
     product.price = updateprice;
     product.description = updatedescription;
-    product.imageUrl = updateImageUrl;
+    if(updateimage)
+    {
+      product.imageUrl = updateimage.path; 
+    }
     return product.save()
     .then((result)=>{
       console.log('UPDATED PRODUCT SUCCESSFULLY!!!');
