@@ -1,3 +1,7 @@
+const fs = require('fs');
+const path = require('path');
+const PDFDocument = require('pdfkit');
+
 const Product = require('../models/product');
 const Order = require('../models/order');
 
@@ -187,3 +191,56 @@ exports.postOrder = (req,res,next) => {
 //     pageTitle: 'Checkout'
 //   });
 // };
+
+exports.getInvoice = (req,res,next) =>{
+  const orderId = req.params.orderId;
+  Order.findById(orderId)
+  .then((order)=>{
+    if(!order)
+    {
+      return next(new Error('No order found'));
+    }
+    if(order.user.userId.toString() !== req.user._id.toString())
+    {
+      return next(new Error('UnAuthorized Access'));
+    }
+    const invoiceName = 'invoice-'+ orderId+ '.pdf';
+    const invoicepath = path.join('data','invoices', invoiceName);
+    const pdfDoc = new PDFDocument();
+    
+    pdfDoc.pipe(fs.createWriteStream(invoicepath))
+    pdfDoc.pipe(res);
+
+    pdfDoc.fontSize(26).text("Invoice",{
+      underline:true
+    });
+    pdfDoc.text('--------------------------');
+    let totalPrice = 0;
+    order.products.forEach((prod)=>{
+      totalPrice = totalPrice + prod.product.price*prod.quantity;
+      pdfDoc.fontSize(16).text('product name '+prod.product.title + '--> ' + 'quantity '+ prod.quantity + ' Amount Rs ' + prod.product.price);
+    });
+    pdfDoc.text('-----------------------');
+    pdfDoc.fontSize(20).text('Total price        ' + totalPrice);
+    pdfDoc.end();
+    // Work fine with small size files
+    // fs.readFile(invoicepath, (err,data)=>{
+    //   if(err)
+    //   {
+    //     return next(err);
+    //   }
+    //   res.setHeader('Content-Type','application/json');
+    //   res.setHeader('Content-Disposition','inline; filename="' + invoiceName + '"')
+    //   res.send(data);
+    // });
+
+    // Work fine with big size file also
+    // const file = fs.createReadStream(invoicepath);
+    // res.setHeader('Content-Type','aplication/pdf');
+    // res.setHeader('Content-Disposition','inline; filename="'+ invoiceName + '"');
+    // file.pipe(res);
+  })
+  .catch((err)=>{
+    console.log(err);
+  })
+}
